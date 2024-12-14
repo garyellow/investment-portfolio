@@ -14,8 +14,25 @@ class AssetDataProvider(ABC):
 
 class CashSymbolProvider(AssetDataProvider):
     def get_symbols(self) -> list[str]:
-        # TODO: 實作從 API 獲取現金符號的邏輯
-        return ["USD", "TWD", "JPY", "CNY"]
+        try:
+            url = "https://openexchangerates.org/api/currencies.json"
+            response = requests.get(url)
+            response.raise_for_status()
+
+            data = response.json()
+            cash_symbols = set()
+            for symbol, name in data.items():
+                # Filter out non-currency items (like cryptocurrency symbols)
+                if len(symbol) == 3:  # Standard currency codes are 3 letters
+                    formatted_symbol = f"({symbol}) {name}"
+                    cash_symbols.add(formatted_symbol)
+
+            return sorted(list(cash_symbols))
+        except Exception as e:
+            print(f"Error fetching cash symbols: {e}")
+            # Fallback to default symbols if API call fails
+            return ["(USD) US Dollar", "(TWD) New Taiwan Dollar", 
+                   "(JPY) Japanese Yen", "(CNY) Chinese Yuan"]
 
 
 class ETFSymbolProvider(AssetDataProvider):
