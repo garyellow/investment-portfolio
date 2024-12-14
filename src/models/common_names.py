@@ -44,8 +44,50 @@ class ETFSymbolProvider(AssetDataProvider):
 
 class StockSymbolProvider(AssetDataProvider):
     def get_symbols(self) -> list[str]:
-        # TODO: 實作從 API 獲取股票符號的邏輯
-        return ["2330", "AAPL", "MSFT"]
+        stock_symbols = set()
+        
+        # Fetch from TPEX API
+        try:
+            tpex_url = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_peratio_analysis"
+            headers = {
+                'accept': 'application/json',
+                'If-Modified-Since': 'Mon, 26 Jul 1997 05:00:00 GMT',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+            tpex_response = requests.get(tpex_url, headers=headers)
+            tpex_response.raise_for_status()
+
+            tpex_data = tpex_response.json()
+            for item in tpex_data:
+                if "SecuritiesCompanyCode" in item and "CompanyName" in item:
+                    formatted_symbol = (
+                        f"({item['SecuritiesCompanyCode']}) {item['CompanyName']}"
+                    )
+                    stock_symbols.add(formatted_symbol)
+        except Exception as e:
+            print(f"Error fetching TPEX symbols: {e}")
+
+        # Fetch from TWSE API
+        try:
+            twse_url = "https://openapi.twse.com.tw/v1/opendata/t187ap03_L"
+            twse_response = requests.get(twse_url, headers=headers)
+            twse_response.raise_for_status()
+
+            twse_data = twse_response.json()
+            for item in twse_data:
+                if "公司代號" in item and "公司簡稱" in item:
+                    formatted_symbol = (
+                        f"({item['公司代號']}) {item['公司簡稱']}"
+                    )
+                    stock_symbols.add(formatted_symbol)
+        except Exception as e:
+            print(f"Error fetching TWSE symbols: {e}")
+
+        # Return combined results or fallback to default if both APIs fail
+        if stock_symbols:
+            return sorted(list(stock_symbols))
+        return ["(2330) TSMC"]  # Fallback value if both APIs fail
 
 
 class FundSymbolProvider(AssetDataProvider):
