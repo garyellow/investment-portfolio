@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 import requests
+import pandas as pd
+import io
 
 from .enums import NodeType
 
@@ -108,9 +110,28 @@ class StockSymbolProvider(AssetDataProvider):
 
 
 class FundSymbolProvider(AssetDataProvider):
+    def _fetch_excel_names(self, url: str) -> set[str]:
+        response = requests.get(url)
+        response.raise_for_status()
+        df = pd.read_excel(io.BytesIO(response.content))
+        return set(df['基金名稱'].dropna().unique())
+
     def get_symbols(self) -> list[str]:
-        # TODO: 實作從 API 獲取基金符號的邏輯
-        return ["富邦台灣科技", "元大高科技", "國泰科技"]
+        try:
+            fund_names = set()
+            
+            # Fetch domestic funds
+            domestic_url = "https://www.sitca.org.tw/MemberK0000/R/01/境內基金代碼對照表.xlsx"
+            fund_names.update(self._fetch_excel_names(domestic_url))
+            
+            # Fetch foreign funds
+            foreign_url = "https://www.sitca.org.tw/MemberK0000/R/02/境外基金代碼對照表.xlsx"
+            fund_names.update(self._fetch_excel_names(foreign_url))
+            
+            return sorted(list(fund_names))
+        except Exception as e:
+            print(f"Error fetching fund symbols: {e}")
+            return ["富邦台灣科技", "元大高科技", "國泰科技"]
 
 
 class CryptoSymbolProvider(AssetDataProvider):
