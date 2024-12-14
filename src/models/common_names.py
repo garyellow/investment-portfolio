@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Optional
+import requests
 
 from .enums import NodeType
 
@@ -19,8 +20,26 @@ class CashSymbolProvider(AssetDataProvider):
 
 class ETFSymbolProvider(AssetDataProvider):
     def get_symbols(self) -> list[str]:
-        # TODO: 實作從 API 獲取 ETF 符號的邏輯
-        return ["VOO", "QQQ", "VTI", "0050"]
+        try:
+            url = "https://openapi.tdcc.com.tw/v1/opendata/2-41"
+            response = requests.get(url)
+            response.raise_for_status()
+
+            data = response.json()
+            # Create formatted strings with code and name
+            etf_symbols = set()
+            for item in data:
+                if "證券代號" in item and "證券名稱" in item:
+                    formatted_symbol = (
+                        f"({item['證券代號'].rstrip()}) {item['證券名稱']}"
+                    )
+                    etf_symbols.add(formatted_symbol)
+
+            return sorted(list(etf_symbols))
+        except Exception as e:
+            print(f"Error fetching ETF symbols: {e}")
+            # Fallback to default symbols if API call fails
+            return ["(0050) 元大台灣50"]
 
 
 class StockSymbolProvider(AssetDataProvider):
