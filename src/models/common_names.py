@@ -56,8 +56,31 @@ class FundSymbolProvider(AssetDataProvider):
 
 class CryptoSymbolProvider(AssetDataProvider):
     def get_symbols(self) -> list[str]:
-        # TODO: 實作從 API 獲取加密貨幣符號的邏輯
-        return ["BTC", "ETH", "USDT"]
+        try:
+            url = "https://api.coingecko.com/api/v3/coins/markets"
+            params = {
+                "vs_currency": "usd",
+                "order": "market_cap_desc",
+                "per_page": 50,
+                "page": 1
+            }
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+
+            data = response.json()
+            crypto_symbols = set()
+            for coin in data:
+                if "symbol" in coin and "name" in coin:
+                    formatted_symbol = (
+                        f"({coin['symbol'].upper()}) {coin['name']}"
+                    )
+                    crypto_symbols.add(formatted_symbol)
+
+            return sorted(list(crypto_symbols))
+        except Exception as e:
+            print(f"Error fetching crypto symbols: {e}")
+            # Fallback to default symbols if API call fails
+            return ["(BTC) Bitcoin", "(ETH) Ethereum", "(USDT) Tether"]
 
 
 class OtherSymbolProvider(AssetDataProvider):
