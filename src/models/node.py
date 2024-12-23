@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Optional, Tuple
 
 from .allocation import AllocationGroup
-from .common_names import asset_registry
 from .enums import NodeType
 from .hierarchy import hierarchy_manager
+from .providers import asset_registry
 
 ROOT_NAME = "投資組合"
 
@@ -38,26 +38,6 @@ class Node:
     @property
     def can_have_children(self) -> bool:
         return hierarchy_manager.can_have_children(self.node_type)
-
-    def get_color(self) -> str:
-        """根據節點類型返回對應的顏色"""
-        color_mapping = {
-            NodeType.ROOT: "#1F77B4",
-            NodeType.PORTFOLIO: "#1F77B4",
-            NodeType.CASH: "#2CA02C",
-            NodeType.ETF: "#FF7F0E",
-            NodeType.STOCK: "#D62728",
-            NodeType.FUND: "#9467BD",
-            NodeType.CRYPTO: "#8C564B",
-            NodeType.OTHER: "#7F7F7F",
-            NodeType.CASH_SYMBOL: "#2CA02C",
-            NodeType.ETF_SYMBOL: "#FF7F0E",
-            NodeType.STOCK_SYMBOL: "#D62728",
-            NodeType.FUND_SYMBOL: "#9467BD",
-            NodeType.CRYPTO_SYMBOL: "#8C564B",
-            NodeType.OTHER_SYMBOL: "#7F7F7F",
-        }
-        return color_mapping.get(self.node_type, "#7F7F7F")
 
     def get_available_child_names(self) -> list[str]:
         if not self.can_have_children:

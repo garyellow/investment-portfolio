@@ -1,8 +1,78 @@
+import plotly.graph_objects as go
 import streamlit as st
 
+from ..models.enums import get_color
 from ..models.hierarchy import hierarchy_manager
+from ..models.node import Node
 from ..models.portfolio import PortfolioState
-from ..utils.sankey import create_sankey_chart, create_sankey_figure
+
+
+class SankeyChart:
+    def __init__(self):
+        self.source_indices = []
+        self.target_indices = []
+        self.flow_values = []
+        self.node_labels = []
+        self.node_colors = []
+
+
+def create_sankey_chart(node: Node) -> SankeyChart:
+    chart = SankeyChart()
+
+    node_stack = [(node, -1)]
+    while node_stack:
+        current, parent_idx = node_stack.pop()
+        current_idx = len(chart.node_labels)
+
+        chart.node_labels.append(current.name)
+        chart.node_colors.append(get_color(current.node_type))
+
+        if parent_idx != -1:
+            flow_value = current.parent_node.allocation_group.get_allocation(
+                current.name, 0.0
+            )
+            chart.flow_values.append(flow_value)
+            chart.source_indices.append(parent_idx)
+            chart.target_indices.append(current_idx)
+
+        for child in reversed(list(current.children.values())):
+            node_stack.append((child, current_idx))
+
+    return chart
+
+
+def create_sankey_figure(chart: SankeyChart, title: str = "投資組合分析") -> go.Figure:
+    return go.Figure(
+        data=[
+            go.Sankey(
+                arrangement="snap",
+                node=dict(
+                    pad=15,
+                    thickness=20,
+                    line=dict(color="gray", width=0.5),
+                    label=chart.node_labels,
+                    color=chart.node_colors,
+                    align="left",
+                ),
+                link=dict(
+                    source=chart.source_indices,
+                    target=chart.target_indices,
+                    value=chart.flow_values,
+                    color="rgba(160, 160, 160, 0.6)",
+                    hovertemplate="%{source.label} ➡ %{target.label}<br />比例: %{value:.1f}%<extra></extra>",
+                ),
+            )
+        ]
+    ).update_layout(
+        title=dict(
+            text=title, font=dict(size=20, color="#FF4B4B"), x=0.5, xanchor="center"
+        ),
+        font=dict(size=12, family="Microsoft JhengHei"),
+        height=600,
+        margin=dict(l=50, r=50, t=50, b=50),
+        paper_bgcolor="rgba(0, 0, 0, 0)",
+        plot_bgcolor="rgba(0, 0, 0, 0)",
+    )
 
 
 def render_diagram(portfolio_state: PortfolioState) -> None:

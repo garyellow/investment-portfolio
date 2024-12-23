@@ -80,23 +80,6 @@ class AllocationGroup:
                         value.quantize(Decimal("0.1"), ROUND_HALF_UP)
                     )
 
-    def balance_allocations(self) -> None:
-        total_allocation = Decimal("0")
-        adjustable_items = [k for k in self.allocations if k not in self.fixed_items]
-
-        for item_name, item_value in self.allocations.items():
-            total_allocation += Decimal(str(item_value))
-
-        if abs(total_allocation - Decimal("100")) > Decimal("0.1"):
-            total_unlocked_value = sum(
-                Decimal(str(self.allocations[k])) for k in adjustable_items
-            )
-            if total_unlocked_value > 0:
-                distribution_ratio = (
-                    Decimal("100")
-                    - sum(Decimal(str(self.allocations[k])) for k in self.fixed_items)
-                ) / total_unlocked_value
-
     def has_single_unlocked_item(self) -> bool:
         """檢查是否只有一個未鎖定的項目"""
         return len(self.allocations) - len(self.fixed_items) == 1

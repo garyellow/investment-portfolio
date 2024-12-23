@@ -51,3 +51,23 @@ class NodeType(Enum):
             cls.OTHER: cls.OTHER_SYMBOL,
         }
         return type_mapping.get(parent_type)
+
+COLOR_MAP = {
+    NodeType.ROOT: "#1F77B4",
+    NodeType.PORTFOLIO: "#1F77B4",
+    NodeType.CASH: "#2CA02C",
+    NodeType.ETF: "#FF7F0E",
+    NodeType.STOCK: "#D62728",
+    NodeType.FUND: "#9467BD",
+    NodeType.CRYPTO: "#8C564B",
+    NodeType.OTHER: "#7F7F7F",
+    NodeType.CASH_SYMBOL: "#2CA02C",
+    NodeType.ETF_SYMBOL: "#FF7F0E",
+    NodeType.STOCK_SYMBOL: "#D62728",
+    NodeType.FUND_SYMBOL: "#9467BD",
+    NodeType.CRYPTO_SYMBOL: "#8C564B",
+    NodeType.OTHER_SYMBOL: "#7F7F7F",
+}
+
+def get_color(node_type: "NodeType") -> str:
+    return COLOR_MAP.get(node_type, "#7F7F7F")
