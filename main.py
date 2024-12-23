@@ -3,6 +3,7 @@ from src.models.portfolio import PortfolioState
 from src.ui.diagram import render_diagram
 from src.ui.portfolio_ui import render_portfolio_ui
 
+
 def main() -> None:
     st.set_page_config(
         page_title="投資組合視覺化工具",
@@ -18,6 +19,7 @@ def main() -> None:
 
     render_portfolio_ui(st.session_state.portfolio_state)
     render_diagram(st.session_state.portfolio_state)
+
 
 if __name__ == "__main__":
     main()

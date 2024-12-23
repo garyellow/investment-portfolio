@@ -13,6 +13,11 @@ def render_portfolio_ui(portfolio_state: PortfolioState):
             _render_asset_allocator(portfolio_state)
 
 
+def _clear_success_message():
+    if "success_message" in st.session_state:
+        del st.session_state.success_message
+
+
 def _render_asset_creator(portfolio_state: PortfolioState) -> None:
     with st.expander("➕ 新增項目", expanded=True):
         # 過濾出只有可以包含子節點的節點路徑
@@ -38,8 +43,7 @@ def _render_asset_creator(portfolio_state: PortfolioState) -> None:
 
             # 如果選擇了不同的名稱，清除成功訊息
             if selected_name != st.session_state.last_selected_name:
-                if "success_message" in st.session_state:
-                    del st.session_state.success_message
+                _clear_success_message()
                 st.session_state.last_selected_name = selected_name
 
             # 使用一個額外的 key 來控制重置
@@ -89,8 +93,7 @@ def _render_asset_allocator(portfolio_state: PortfolioState):
     node_paths = ["投資組合"] + [n.full_path for n in available_nodes]
 
     # 保存和恢復選擇的路徑
-    if "allocation_view_path" not in st.session_state:
-        st.session_state.allocation_view_path = "投資組合"
+    st.session_state.setdefault("allocation_view_path", "投資組合")
 
     # 只有在有新增項目時才更新路徑
     if "selected_allocation_path" in st.session_state:
@@ -160,23 +163,18 @@ class AssetItemState:
     def fixed_label(self) -> str:
         return "🔒" if self.is_fixed else "🔓"
 
-    @property
-    def fixed_help(self) -> str:
+    def get_fixed_help(self) -> str:
         if self.is_single_asset:
             return "單一資產無法固定"
-        elif self.is_fixed:
+        if self.is_fixed:
             all_fixed = self.fixed_count == self.total_items
             return "點擊解除固定" + (
                 " (會同時解除固定相近比例的項目)" if all_fixed else ""
             )
-        else:
-            is_last_two = self.unfixed_count == 2
-            return "點擊固定" + (
-                " (會同時固定最後兩個未固定項目)" if is_last_two else ""
-            )
+        is_last_two = self.unfixed_count == 2
+        return "點擊固定" + (" (會同時固定最後兩個未固定項目)" if is_last_two else "")
 
-    @property
-    def delete_help(self) -> str:
+    def get_delete_help(self) -> str:
         return "無法刪除已固定項目" if self.is_fixed else None
 
 
@@ -193,32 +191,34 @@ def _render_asset_item(portfolio_state: PortfolioState, path: list[str], name: s
         + (" (唯一資產)" if state.is_single_asset else "")
     )
 
-    new_value = cols[0].slider(
-        label=f"**{name}**",
+    new_value = cols[0].number_input(
+        label=f"**{name}** (%)",
         min_value=0,
         max_value=100,
-        step=5,
+        step=10,
         value=int(round(state.allocation)),
         disabled=state.slider_disabled,
-        format="%d%%",
         help=slider_help,
     )
 
-    if abs(new_value - state.allocation) > 0.01:
+    if new_value != state.allocation:
         portfolio_state.update_allocation(path, name, float(new_value))
         st.rerun()
 
     if cols[1].button(
         state.fixed_label,
         key=f"fixed_{name}",
-        help=state.fixed_help,
+        help=state.get_fixed_help(),
         disabled=state.fixed_disabled,
     ):
         portfolio_state.toggle_fixed(path, name, not state.is_fixed)
         st.rerun()
 
     if cols[2].button(
-        "🗑️", key=f"del_{name}", disabled=state.delete_disabled, help=state.delete_help
+        "🗑️",
+        key=f"del_{name}",
+        disabled=state.delete_disabled,
+        help=state.get_delete_help(),
     ):
         if portfolio_state.remove_asset(path + [name]):
             st.rerun()
