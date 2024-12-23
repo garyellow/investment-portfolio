@@ -18,25 +18,26 @@ class SankeyChart:
 
 def create_sankey_chart(node: Node) -> SankeyChart:
     chart = SankeyChart()
+    # 新增傳遞父節點的累計權重
+    node_stack = [(node, -1, 100.0)]
 
-    node_stack = [(node, -1)]
     while node_stack:
-        current, parent_idx = node_stack.pop()
+        current, parent_idx, current_weight = node_stack.pop()
         current_idx = len(chart.node_labels)
-
         chart.node_labels.append(current.name)
         chart.node_colors.append(get_color(current.node_type))
 
         if parent_idx != -1:
-            flow_value = current.parent_node.allocation_group.get_allocation(
-                current.name, 0.0
-            )
-            chart.flow_values.append(flow_value)
+            # 以傳入的 current_weight 作為該連線的 flow 值
+            chart.flow_values.append(current_weight)
             chart.source_indices.append(parent_idx)
             chart.target_indices.append(current_idx)
 
+        # 同步更新子節點的累計權重
         for child in reversed(list(current.children.values())):
-            node_stack.append((child, current_idx))
+            child_local_allocation = current.allocation_group.get_allocation(child.name, 0.0)
+            child_weight = current_weight * child_local_allocation / 100.0
+            node_stack.append((child, current_idx, child_weight))
 
     return chart
 
