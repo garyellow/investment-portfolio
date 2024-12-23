@@ -205,6 +205,9 @@ def _render_asset_item(portfolio_state: PortfolioState, path: list[str], name: s
         portfolio_state.update_allocation(path, name, float(new_value))
         st.rerun()
 
+    # 增加空白的 label 來對齊按鈕
+    cols[1].write("")
+    cols[1].write("")
     if cols[1].button(
         state.fixed_label,
         key=f"fixed_{name}",
@@ -214,6 +217,9 @@ def _render_asset_item(portfolio_state: PortfolioState, path: list[str], name: s
         portfolio_state.toggle_fixed(path, name, not state.is_fixed)
         st.rerun()
 
+    # 增加空白的 label 來對齊按鈕
+    cols[2].write("")
+    cols[2].write("")
     if cols[2].button(
         "🗑️",
         key=f"del_{name}",
