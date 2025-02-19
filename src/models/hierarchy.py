@@ -1,5 +1,11 @@
 from .enums import NodeType
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .node import Node
 
+"""
+層級管理模組：定義子節點的有效類型及排序邏輯。
+"""
 
 class HierarchyManager:
     def __init__(self):
@@ -39,15 +45,19 @@ class HierarchyManager:
         ]
 
     def get_valid_child_types(self, node_type: NodeType) -> set[NodeType]:
+        """返回指定節點可建立的子節點類型集合"""
         return self._hierarchy.get(node_type, set())
 
     def can_have_children(self, node_type: NodeType) -> bool:
+        """判斷該節點型別是否可擁有子節點"""
         return node_type not in self._terminal_types
 
     def get_root_order(self) -> list[str]:
+        """返回根節點下標準排序名稱列表"""
         return [NodeType.get_chinese_name(t) for t in self._root_order]
 
-    def get_sorted_children(self, node) -> list[str]:
+    def get_sorted_children(self, node: "Node") -> list[str]:
+        """返回按順序排列的子節點名稱列表"""
         if node.is_root:
             standard_names = self.get_root_order()
             custom_names = [

@@ -1,17 +1,15 @@
 from enum import Enum, auto
 from typing import Optional
 
-
 class NodeType(Enum):
-    ROOT = auto()  # 根節點（投資組合）
-    PORTFOLIO = auto()
-    CASH = auto()
-    ETF = auto()
-    STOCK = auto()
-    FUND = auto()
-    CRYPTO = auto()
-    OTHER = auto()
-
+    ROOT = auto()      # 根節點（投資組合）
+    PORTFOLIO = auto() # 投資組合
+    CASH = auto()      # 現金
+    ETF = auto()       # ETF
+    STOCK = auto()     # 股票
+    FUND = auto()      # 基金
+    CRYPTO = auto()    # 加密貨幣
+    OTHER = auto()     # 其他
     # 子標的類型
     CASH_SYMBOL = auto()
     ETF_SYMBOL = auto()
@@ -21,7 +19,7 @@ class NodeType(Enum):
     OTHER_SYMBOL = auto()
 
     @staticmethod
-    def get_chinese_name(node_type) -> str:
+    def get_chinese_name(node_type: "NodeType") -> str:
         name_map = {
             NodeType.PORTFOLIO: "投資組合",
             NodeType.CASH: "現金",
@@ -41,7 +39,7 @@ class NodeType(Enum):
 
     @classmethod
     def get_symbol_type(cls, parent_type: "NodeType") -> Optional["NodeType"]:
-        """根據父節點類型取得對應的子標的類型"""
+        """從父節點型別推導對應的子標的型別"""
         type_mapping = {
             cls.CASH: cls.CASH_SYMBOL,
             cls.ETF: cls.ETF_SYMBOL,
