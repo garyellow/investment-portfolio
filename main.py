@@ -1,8 +1,10 @@
 import streamlit as st
+
 from src.models.portfolio import PortfolioState
 from src.ui.diagram import render_diagram
 from src.ui.portfolio_ui import render_portfolio_ui
 from src.ui.rebalancer import render_rebalancer_ui
+
 
 def main() -> None:
     st.set_page_config(

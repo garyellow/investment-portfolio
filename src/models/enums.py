@@ -1,6 +1,7 @@
 from enum import Enum, auto
 from typing import Optional
 
+
 class NodeType(Enum):
     ROOT = auto()      # 根節點（投資組合）
     PORTFOLIO = auto() # 投資組合

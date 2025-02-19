@@ -1,4 +1,4 @@
-import plotly.graph_objects as go
+import plotly.graph_objects as go # type: ignore
 import streamlit as st
 
 from ..models.enums import get_color

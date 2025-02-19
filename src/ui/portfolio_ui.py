@@ -1,6 +1,8 @@
 import streamlit as st
+
 from ..models.hierarchy import hierarchy_manager
 from ..models.portfolio import PortfolioState
+
 
 def render_portfolio_ui(portfolio_state: PortfolioState) -> None:
     """顯示投資組合管理介面，支援新增、刪除與資產配置"""
@@ -221,7 +223,7 @@ class AssetItemState:
         return "點擊鎖定" + (" (同時鎖定其他項目)" if is_last_two else "")
 
     def get_delete_help(self) -> str:
-        return "已鎖定項目不可刪除" if self.is_fixed else None
+        return "已鎖定項目不可刪除" if self.is_fixed else ""
 
 def _render_asset_item(portfolio_state: PortfolioState, path: list[str], name: str) -> None:
     """渲染單一資產配置項目，包括數字調整與鎖定/刪除按鈕"""

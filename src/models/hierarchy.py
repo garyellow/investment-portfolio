@@ -1,5 +1,7 @@
-from .enums import NodeType
 from typing import TYPE_CHECKING
+
+from .enums import NodeType
+
 if TYPE_CHECKING:
     from .node import Node
 

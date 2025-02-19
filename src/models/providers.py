@@ -1,10 +1,12 @@
 import io
 from abc import ABC, abstractmethod
 from typing import Optional
+
 import pandas as pd
 import requests
+
+from ..utils.fetcher import fetch_json
 from .enums import NodeType
-from .utils.fetcher import fetch_json
 
 """
 資產資料提供者模組：
@@ -23,10 +25,11 @@ class CashSymbolProvider(AssetDataProvider):
         cash_symbols = set()
         data = fetch_json("https://openexchangerates.org/api/currencies.json")
         if data:
-            for symbol, name in data.items():
-                if len(symbol) == 3:
-                    formatted_symbol = f"({symbol}) {name}"
-                    cash_symbols.add(formatted_symbol)
+            if isinstance(data, dict):
+                for symbol, name in data.items():
+                    if len(symbol) == 3:
+                        formatted_symbol = f"({symbol}) {name}"
+                        cash_symbols.add(formatted_symbol)
         else:
             return [
                 "(USD) US Dollar",

@@ -1,5 +1,6 @@
 from typing import AbstractSet, Mapping
 
+
 class AllocationGroup:
     def __init__(self) -> None:
         self.allocations: dict[str, float] = {}

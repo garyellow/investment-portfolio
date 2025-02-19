@@ -1,6 +1,8 @@
 from typing import Optional
+
 from .enums import NodeType
 from .node import Node
+
 
 class PortfolioStateError(Exception):
     pass
