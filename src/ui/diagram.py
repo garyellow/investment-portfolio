@@ -1,4 +1,4 @@
-import plotly.graph_objects as go # type: ignore
+import plotly.graph_objects as go  # type: ignore
 import streamlit as st
 
 from ..models.enums import get_color
@@ -9,6 +9,7 @@ from ..models.portfolio import PortfolioState
 """
 Sankey 圖表模組：生成並顯示資產配置視覺化圖表。
 """
+
 
 class SankeyChart:
     def __init__(self) -> None:
@@ -37,16 +38,20 @@ def create_sankey_chart(node: Node) -> SankeyChart:
             chart.source_indices.append(parent_idx)
             chart.target_indices.append(current_idx)
 
-        # 計算子節點的累計權重
+        # 將子節點（依排序）推入堆疊處理
         for child in reversed(list(current.children.values())):
-            child_local_allocation = current.allocation_group.get_allocation(child.name, 0.0)
+            child_local_allocation = current.allocation_group.get_allocation(
+                child.name, 0.0
+            )
             child_weight = current_weight * child_local_allocation / 100.0
             node_stack.append((child, current_idx, child_weight))
 
     return chart
 
 
-def create_sankey_figure(chart: SankeyChart, title: str = "投資組合分析圖") -> go.Figure:
+def create_sankey_figure(
+    chart: SankeyChart, title: str = "投資組合分析圖"
+) -> go.Figure:
     """
     根據 SankeyChart 數據生成 Plotly Figure。
     """
@@ -73,7 +78,9 @@ def create_sankey_figure(chart: SankeyChart, title: str = "投資組合分析圖
         ]
     )
     fig.update_layout(
-        title=dict(text=title, font=dict(size=20, color="#FF4B4B"), x=0.5, xanchor="center"),
+        title=dict(
+            text=title, font=dict(size=20, color="#FF4B4B"), x=0.5, xanchor="center"
+        ),
         font=dict(size=12, family="Microsoft JhengHei"),
         height=600,
         margin=dict(l=50, r=50, t=50, b=50),
@@ -118,7 +125,9 @@ def _render_asset_summary(portfolio_state: PortfolioState) -> None:
                     st.info(f"尚未新增任何 {asset_type}，請前往管理新增。")
 
 
-def _render_asset_type_details(portfolio_state: PortfolioState, asset_type: str) -> None:
+def _render_asset_type_details(
+    portfolio_state: PortfolioState, asset_type: str
+) -> None:
     node = portfolio_state.root.children[asset_type]
     for sub_name, sub_node in sorted(node.children.items()):
         sub_allocation = portfolio_state.get_allocation([asset_type], sub_name)
@@ -128,8 +137,12 @@ def _render_asset_type_details(portfolio_state: PortfolioState, asset_type: str)
         )
         if sub_node.has_children:
             for child_name in sorted(sub_node.children):
-                child_allocation = portfolio_state.get_allocation([asset_type, sub_name], child_name)
-                child_weight = portfolio_state.get_total_weight([asset_type, sub_name, child_name])
+                child_allocation = portfolio_state.get_allocation(
+                    [asset_type, sub_name], child_name
+                )
+                child_weight = portfolio_state.get_total_weight(
+                    [asset_type, sub_name, child_name]
+                )
                 st.write(
                     f"    - {child_name}：局部配置 {child_allocation:.1f}% (總體比例 {child_weight:.1f}%)"
                 )

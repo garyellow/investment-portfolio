@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 層級管理模組：定義子節點的有效類型及排序邏輯。
 """
 
+
 class HierarchyManager:
     def __init__(self):
         self._hierarchy = {

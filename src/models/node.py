@@ -9,6 +9,7 @@ from .providers import asset_registry
 
 ROOT_NAME = "投資組合"
 
+
 class Node:
     def __init__(self, name: str, node_type: NodeType) -> None:
         self.name = name
@@ -24,7 +25,11 @@ class Node:
     @property
     def full_path(self) -> str:
         """返回從根節點開始的完整路徑（用 ' -> ' 分隔）"""
-        return self.name if not self.parent_node else f"{self.parent_node.full_path} -> {self.name}"
+        return (
+            self.name
+            if not self.parent_node
+            else f"{self.parent_node.full_path} -> {self.name}"
+        )
 
     @property
     def has_children(self) -> bool:
@@ -43,7 +48,9 @@ class Node:
         available_node_types = self.get_valid_child_types()
         if not available_node_types:
             return []
-        if len(available_node_types) == 1 and next(iter(available_node_types)).name.endswith("_SYMBOL"):
+        if len(available_node_types) == 1 and next(
+            iter(available_node_types)
+        ).name.endswith("_SYMBOL"):
             available_names = asset_registry.get_symbol_names(self.node_type)
         else:
             available_names = asset_registry.get_available_names(available_node_types)
@@ -67,11 +74,16 @@ class Node:
             return node_type if node_type in valid_types else None
         symbol_type = NodeType.get_symbol_type(self.node_type)
         if symbol_type and symbol_type in valid_types:
-            if child_name == "其他" or child_name not in asset_registry.get_symbol_names(self.node_type):
+            if (
+                child_name == "其他"
+                or child_name not in asset_registry.get_symbol_names(self.node_type)
+            ):
                 return symbol_type
         return asset_registry.get_name_type(child_name, valid_types)
 
-    def add_child(self, name: str, parent_weight: float = 100.0) -> Tuple[Optional[Node], str]:
+    def add_child(
+        self, name: str, parent_weight: float = 100.0
+    ) -> Tuple[Optional[Node], str]:
         """新增子節點，成功返回 (Node, "")，否則返回 (None, 錯誤訊息)"""
         cleaned_name = name.strip()
         if not cleaned_name or cleaned_name in self.children:
@@ -94,7 +106,10 @@ class Node:
         if len(self.children) == 1:
             self.allocation_group.update_allocation(name, parent_weight)
             return
-        unfixed_total = 100.0 - sum(self.allocation_group.allocations[n] for n in self.allocation_group.fixed_items)
+        unfixed_total = 100.0 - sum(
+            self.allocation_group.allocations[n]
+            for n in self.allocation_group.fixed_items
+        )
         unfixed_count = len(self.children) - len(self.allocation_group.fixed_items)
         if unfixed_count > 0:
             share = unfixed_total / unfixed_count

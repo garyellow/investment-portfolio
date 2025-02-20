@@ -37,7 +37,9 @@ class AllocationGroup:
 
         if abs(old_value - value) > 0.01:
             remaining = available - value
-            unlocked = [k for k in self.allocations if k not in self.fixed_items and k != name]
+            unlocked = [
+                k for k in self.allocations if k not in self.fixed_items and k != name
+            ]
             if unlocked:
                 others_total = sum(self.allocations.get(k, 0) for k in unlocked)
                 if others_total > 0:
@@ -59,7 +61,10 @@ class AllocationGroup:
             if unlocked_items:
                 for name in unlocked_items:
                     self.allocations[name] = round(
-                        self.allocations[name] / total_percentage * (100 - locked_total), 1
+                        self.allocations[name]
+                        / total_percentage
+                        * (100 - locked_total),
+                        1,
                     )
 
     def has_single_unlocked_item(self) -> bool:
@@ -81,14 +86,19 @@ class AllocationGroup:
 
             unlocked_items = [k for k in self.allocations if k not in self.fixed_items]
             if len(unlocked_items) == 2 and name in unlocked_items:
-                self.fixed_items.update([name] + [k for k in unlocked_items if k != name])
+                self.fixed_items.update(
+                    [name] + [k for k in unlocked_items if k != name]
+                )
                 return
 
             self.fixed_items.add(name)
             self._redistribute_allocations()
         else:
             if name in self.fixed_items:
-                if len(self.fixed_items) == len(self.allocations) and len(self.allocations) > 1:
+                if (
+                    len(self.fixed_items) == len(self.allocations)
+                    and len(self.allocations) > 1
+                ):
                     closest_item = min(
                         (k for k in self.fixed_items if k != name),
                         key=lambda k: abs(self.allocations[k] - self.allocations[name]),
@@ -101,14 +111,18 @@ class AllocationGroup:
 
     def _redistribute_allocations(self) -> None:
         """重新分配未鎖定項目的百分比以滿足總和 100%"""
-        total_locked_percentage = sum(self.allocations.get(name, 0) for name in self.fixed_items)
+        total_locked_percentage = sum(
+            self.allocations.get(name, 0) for name in self.fixed_items
+        )
         available_percentage = 100 - total_locked_percentage
         unlocked_item_names = [k for k in self.allocations if k not in self.fixed_items]
 
         if not unlocked_item_names:
             return
 
-        total_unlocked_percentage = sum(self.allocations[k] for k in unlocked_item_names)
+        total_unlocked_percentage = sum(
+            self.allocations[k] for k in unlocked_item_names
+        )
 
         if total_unlocked_percentage > 0:
             percentage_ratio = available_percentage / total_unlocked_percentage

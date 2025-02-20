@@ -23,5 +23,6 @@ def main() -> None:
     st.markdown("---")
     render_rebalancer_ui(st.session_state.portfolio_state)
 
+
 if __name__ == "__main__":
     main()

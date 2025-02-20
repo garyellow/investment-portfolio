@@ -7,6 +7,7 @@ from .node import Node
 class PortfolioStateError(Exception):
     pass
 
+
 class PortfolioState:
     def __init__(self) -> None:
         # 建立根節點
@@ -18,16 +19,17 @@ class PortfolioState:
         for name in path[1:]:
             if name not in current.children:
                 return None
-
             current = current.children[name]
-
         return current
 
     def remove_asset(self, path: list[str]) -> bool:
         """依路徑移除資產，成功返回 True"""
         if not path or not (current := self.get_node_by_path(path[:-1])):
             return False
-        if current.allocation_group and path[-1] in current.allocation_group.fixed_items:
+        if (
+            current.allocation_group
+            and path[-1] in current.allocation_group.fixed_items
+        ):
             return False
         if current.remove_child(path[-1]):
             if current.allocation_group and current.children:
@@ -59,12 +61,14 @@ class PortfolioState:
 
     def get_all_nodes(self) -> list[Node]:
         """遞迴收集所有子節點"""
+
         def collect_nodes(current: Node) -> list[Node]:
             result = []
             for child in current.children.values():
                 result.append(child)
                 result.extend(collect_nodes(child))
             return result
+
         return collect_nodes(self.root)
 
     def add_simplified_node(self, path: list[str], name: str) -> tuple[bool, str]:
@@ -87,7 +91,6 @@ class PortfolioState:
         """計算節點於整體組合中的權重"""
         total_weight = 100.0
         for i, segment in enumerate(path):
-            # 透過區間前一段作為父路徑
             allocation = self.get_allocation(path[:i], segment)
             total_weight *= allocation / 100.0
         return total_weight
