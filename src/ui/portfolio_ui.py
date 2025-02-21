@@ -81,14 +81,14 @@ def _update_share_allocation(portfolio_state: PortfolioState, path: list[str]) -
             total_shares += shares
             share_values[name] = shares
 
-    # 計算並更新配置
+    # 計算並更新配置（加入四捨五入處理）
     if total_shares > 0:
         fixed_total = sum(fixed_allocations.values())
         remaining = 100.0 - fixed_total
 
-        # 更新非固定項目的配置
+        # 更新非固定項目的配置，保持與 AllocationGroup 使用相同精度
         for name, shares in share_values.items():
-            allocation = (shares / total_shares) * remaining
+            allocation = round((shares / total_shares) * remaining, 1)
             portfolio_state.update_allocation(path, name, allocation)
 
     # 恢復固定項目
@@ -180,6 +180,7 @@ def _render_asset_share_item(
         _update_share_allocation(portfolio_state, path)
         st.rerun()
 
+    cols[1].write(" ")
     cols[1].write(" ")
     delete_key = f"del_share_{'_'.join(path + [name])}"
     if cols[1].button(

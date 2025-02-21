@@ -78,9 +78,9 @@ class PortfolioState:
         return True, ""
 
     def get_total_weight(self, path: list[str]) -> float:
-        # 沿路徑逐層計算總體比例（局部比例相乘）
-        if not path:
-            return 100.0
+        if path and path[0] == self.root.name:
+            path = path[1:]
+
         total = 100.0
         current = self.root
         for name in path:

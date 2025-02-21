@@ -1,5 +1,7 @@
 from typing import AbstractSet, Mapping
 
+ALLOCATION_TOLERANCE = 0.01
+ALLOCATION_PRECISION = 1
 
 class AllocationGroup:
     def __init__(self) -> None:
@@ -33,10 +35,10 @@ class AllocationGroup:
 
         value = min(max(0.0, value), available)
         old_value = self.allocations[name]
-        self.allocations[name] = value
+        self.allocations[name] = round(value, ALLOCATION_PRECISION)
 
-        if abs(old_value - value) > 0.01:
-            remaining = available - value
+        if abs(old_value - self.allocations[name]) > ALLOCATION_TOLERANCE:
+            remaining = available - self.allocations[name]
             unlocked = [
                 k for k in self.allocations if k not in self.fixed_items and k != name
             ]
@@ -45,17 +47,19 @@ class AllocationGroup:
                 if others_total > 0:
                     ratio = remaining / others_total
                     for k in unlocked:
-                        self.allocations[k] = self.allocations.get(k, 0) * ratio
+                        self.allocations[k] = round(
+                            self.allocations.get(k, 0) * ratio, ALLOCATION_PRECISION
+                        )
                 else:
                     equal_share = remaining / len(unlocked)
                     for k in unlocked:
-                        self.allocations[k] = equal_share
+                        self.allocations[k] = round(equal_share, ALLOCATION_PRECISION)
             self._normalize()
 
     def _normalize(self) -> None:
         """正規化所有項目的總和為 100%"""
         total_percentage = sum(self.allocations.values())
-        if abs(total_percentage - 100) > 0.1:
+        if abs(total_percentage - 100) > ALLOCATION_TOLERANCE * 10:
             unlocked_items = [k for k in self.allocations if k not in self.fixed_items]
             locked_total = sum(self.allocations.get(k, 0) for k in self.fixed_items)
             if unlocked_items:
@@ -64,7 +68,7 @@ class AllocationGroup:
                         self.allocations[name]
                         / total_percentage
                         * (100 - locked_total),
-                        1,
+                        ALLOCATION_PRECISION,
                     )
 
     def has_single_unlocked_item(self) -> bool:
@@ -128,10 +132,10 @@ class AllocationGroup:
             percentage_ratio = available_percentage / total_unlocked_percentage
             for item_name in unlocked_item_names:
                 self.allocations[item_name] = round(
-                    self.allocations[item_name] * percentage_ratio, 1
+                    self.allocations[item_name] * percentage_ratio, ALLOCATION_PRECISION
                 )
         else:
-            equal_percentage = round(available_percentage / len(unlocked_item_names), 1)
+            equal_percentage = round(available_percentage / len(unlocked_item_names), ALLOCATION_PRECISION)
             for item_name in unlocked_item_names:
                 self.allocations[item_name] = equal_percentage
 
