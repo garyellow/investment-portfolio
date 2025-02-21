@@ -31,21 +31,23 @@ class CashSymbolProvider(AssetDataProvider):
             "(JPY) Japanese Yen",
             "(CNY) Chinese Yuan",
         ]
+
         if not data or not isinstance(data, dict):
             return fallback
 
-        cash_symbols = set()
+        cash_symbols = list()
         for symbol, name in data.items():
             if len(symbol) == 3:
                 formatted_symbol = f"({symbol}) {name}"
-                cash_symbols.add(formatted_symbol)
-        return sorted(list(cash_symbols))
+                cash_symbols.append(formatted_symbol)
+
+        return sorted(cash_symbols)
 
 
 class ETFSymbolProvider(AssetDataProvider):
     def get_symbols(self) -> list[str]:
         """取得 ETF 標的資料。"""
-        etf_symbols = set()
+        etf_symbols = list()
         data = fetch_json("https://openapi.tdcc.com.tw/v1/opendata/2-41")
         if data:
             for item in data:
@@ -53,16 +55,17 @@ class ETFSymbolProvider(AssetDataProvider):
                     formatted_symbol = (
                         f"({item['證券代號'].rstrip()}) {item['證券名稱']}"
                     )
-                    etf_symbols.add(formatted_symbol)
+                    etf_symbols.append(formatted_symbol)
         else:
             return ["(0050) 元大台灣50", "(VOO) Vanguard S&P 500 ETF"]
-        return sorted(list(etf_symbols))
+
+        return sorted(etf_symbols)
 
 
 class StockSymbolProvider(AssetDataProvider):
     def get_symbols(self) -> list[str]:
         """整合櫃買與上市股票標的資料。"""
-        stock_symbols = set()
+        stock_symbols = list()
         tpex_data = fetch_json(
             "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_peratio_analysis",
             headers={
@@ -78,7 +81,8 @@ class StockSymbolProvider(AssetDataProvider):
                     formatted_symbol = (
                         f"({item['SecuritiesCompanyCode']}) {item['CompanyName']}"
                     )
-                    stock_symbols.add(formatted_symbol)
+                    stock_symbols.append(formatted_symbol)
+
         twse_data = fetch_json(
             "https://openapi.twse.com.tw/v1/opendata/t187ap03_L",
             headers={
@@ -92,9 +96,10 @@ class StockSymbolProvider(AssetDataProvider):
             for item in twse_data:
                 if "公司代號" in item and "公司簡稱" in item:
                     formatted_symbol = f"({item['公司代號']}) {item['公司簡稱']}"
-                    stock_symbols.add(formatted_symbol)
+                    stock_symbols.append(formatted_symbol)
+
         return (
-            sorted(list(stock_symbols))
+            sorted(stock_symbols)
             if stock_symbols
             else ["(2330) 台積電", "(2317) 鴻海"]
         )
@@ -111,16 +116,17 @@ class FundSymbolProvider(AssetDataProvider):
     def get_symbols(self) -> list[str]:
         """取得境內及境外基金標的資料。"""
         try:
-            fund_names = set()
+            fund_names: list[str] = list()
             domestic_url = (
                 "https://www.sitca.org.tw/MemberK0000/R/01/境內基金代碼對照表.xlsx"
             )
-            fund_names.update(self._fetch_excel_names(domestic_url))
+            fund_names.extend(self._fetch_excel_names(domestic_url))
             foreign_url = (
                 "https://www.sitca.org.tw/MemberK0000/R/02/境外基金代碼對照表.xlsx"
             )
-            fund_names.update(self._fetch_excel_names(foreign_url))
-            return sorted(list(fund_names))
+            fund_names.extend(self._fetch_excel_names(foreign_url))
+            return sorted(fund_names)
+
         except Exception as e:
             print(f"Error fetching fund symbols: {e}")
             return []
@@ -128,8 +134,8 @@ class FundSymbolProvider(AssetDataProvider):
 
 class CryptoSymbolProvider(AssetDataProvider):
     def get_symbols(self) -> list[str]:
-        """取得前 50 名加密貨幣標的資料。"""
-        crypto_symbols = set()
+        """取得前 100 名加密貨幣標的資料。"""
+        crypto_symbols = list()
         data = fetch_json(
             "https://api.coingecko.com/api/v3/coins/markets",
             params={
@@ -144,12 +150,12 @@ class CryptoSymbolProvider(AssetDataProvider):
             for coin in data:
                 if "symbol" in coin and "name" in coin:
                     formatted_symbol = f"({coin['symbol'].upper()}) {coin['name']}"
-                    crypto_symbols.add(formatted_symbol)
+                    crypto_symbols.append(formatted_symbol)
 
         else:
             return ["(BTC) Bitcoin", "(ETH) Ethereum", "(USDT) Tether"]
 
-        return sorted(list(crypto_symbols))
+        return crypto_symbols
 
 
 class OtherSymbolProvider(AssetDataProvider):
@@ -180,7 +186,7 @@ class AssetDataProviderFactory:
 
 class AssetNameRegistry:
     def __init__(self):
-        self._asset_type_map: dict[str, set[NodeType]] = {}
+        self._asset_type_map: dict[NodeType, list[str]] = {}
         symbol_types = {
             NodeType.CASH_SYMBOL,
             NodeType.ETF_SYMBOL,
@@ -189,39 +195,29 @@ class AssetNameRegistry:
             NodeType.CRYPTO_SYMBOL,
             NodeType.OTHER_SYMBOL,
         }
-        for node_type in NodeType:
-            if node_type in symbol_types:
-                provider = AssetDataProviderFactory.create_provider(node_type)
-                symbols = provider.get_symbols()
-                for symbol in symbols:
-                    if symbol not in self._asset_type_map:
-                        self._asset_type_map[symbol] = set()
-                    self._asset_type_map[symbol].add(node_type)
+
+        for node_type in symbol_types:
+            provider = AssetDataProviderFactory.create_provider(node_type)
+            self._asset_type_map[node_type] = provider.get_symbols()
 
     def get_available_names(self, available_types: set[NodeType]) -> list[str]:
-        available_names = {
-            name
-            for name, types in self._asset_type_map.items()
-            if types & available_types
-        }
-        return sorted(available_names)
+        available_names = []
+        for node_type in available_types:
+            if node_type in self._asset_type_map:
+                available_names.extend(self._asset_type_map[node_type])
+        return sorted(set(available_names))
 
     def get_name_type(
         self, name: str, valid_types: set[NodeType]
     ) -> Optional[NodeType]:
-        if name in self._asset_type_map:
-            matching_types = self._asset_type_map[name] & valid_types
-            return next(iter(matching_types)) if matching_types else None
+        for node_type in valid_types:
+            if node_type in self._asset_type_map and name in self._asset_type_map[node_type]:
+                return node_type
         return None
 
     def get_symbol_names(self, parent_type: NodeType) -> list[str]:
         if symbol_type := NodeType.get_symbol_type(parent_type):
-            names = {
-                name
-                for name, types in self._asset_type_map.items()
-                if symbol_type in types
-            }
-            return sorted(names)
+            return self._asset_type_map.get(symbol_type, [])
         return []
 
 

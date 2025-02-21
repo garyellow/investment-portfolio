@@ -72,7 +72,7 @@ def create_sankey_figure(
                     target=chart.target_indices,
                     value=chart.flow_values,
                     color="rgba(160, 160, 160, 0.6)",
-                    hovertemplate="%{source.label} ➡ %{target.label}<br />比例: %{value:.1f}%<extra></extra>",
+                    hovertemplate="%{source.label} ➡ %{target.label}<br />比例: %{value:.2f}%<extra></extra>",
                 ),
             )
         ]
@@ -115,34 +115,24 @@ def render_diagram(portfolio_state: PortfolioState) -> None:
 
 def _render_asset_summary(portfolio_state: PortfolioState) -> None:
     for asset_type in hierarchy_manager.get_sorted_children(portfolio_state.root):
-        if asset_type in portfolio_state.root.children:
-            node = portfolio_state.root.children[asset_type]
+        node = portfolio_state.root.children.get(asset_type)
+        if node:
             allocation = portfolio_state.get_allocation([], asset_type)
-            with st.expander(f"{asset_type} （配置比例：{allocation:.1f}%）"):
+            with st.expander(f"{asset_type} （配置比例：{allocation:.2f}%）"):
                 if node.has_children:
                     _render_asset_type_details(portfolio_state, asset_type)
                 else:
                     st.info(f"尚未新增任何 {asset_type}，請前往管理新增。")
 
 
-def _render_asset_type_details(
-    portfolio_state: PortfolioState, asset_type: str
-) -> None:
+def _render_asset_type_details(portfolio_state: PortfolioState, asset_type: str) -> None:
     node = portfolio_state.root.children[asset_type]
     for sub_name, sub_node in sorted(node.children.items()):
         sub_allocation = portfolio_state.get_allocation([asset_type], sub_name)
         total_weight = portfolio_state.get_total_weight([asset_type, sub_name])
-        st.write(
-            f"  - {sub_name}：局部配置 {sub_allocation:.1f}% (總體比例 {total_weight:.1f}%)"
-        )
+        st.write(f"  - {sub_name}：局部比例 {sub_allocation:.2f}% (總體比例 {total_weight:.2f}%)")
         if sub_node.has_children:
             for child_name in sorted(sub_node.children):
-                child_allocation = portfolio_state.get_allocation(
-                    [asset_type, sub_name], child_name
-                )
-                child_weight = portfolio_state.get_total_weight(
-                    [asset_type, sub_name, child_name]
-                )
-                st.write(
-                    f"    - {child_name}：局部配置 {child_allocation:.1f}% (總體比例 {child_weight:.1f}%)"
-                )
+                child_allocation = portfolio_state.get_allocation([asset_type, sub_name], child_name)
+                child_weight = portfolio_state.get_total_weight([asset_type, sub_name, child_name])
+                st.write(f"    - {child_name}：局部比例 {child_allocation:.2f}% (總體比例 {child_weight:.2f}%)")

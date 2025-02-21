@@ -16,28 +16,25 @@ class PortfolioState:
     def get_node_by_path(self, path: list[str]) -> Optional[Node]:
         """根據路徑逐層查找節點，找不到返回 None"""
         current = self.root
-        for name in path[1:]:
+        remaining = path[1:] if path and path[0] == current.name else path
+        for name in remaining:
             if name not in current.children:
                 return None
             current = current.children[name]
         return current
 
     def remove_asset(self, path: list[str]) -> bool:
-        """依路徑移除資產，成功返回 True"""
-        if not path or not (current := self.get_node_by_path(path[:-1])):
+        if not path:
             return False
-        if (
-            current.allocation_group
-            and path[-1] in current.allocation_group.fixed_items
-        ):
+        parent = self.get_node_by_path(path[:-1])
+        if not parent or (parent.allocation_group and path[-1] in parent.allocation_group.fixed_items):
             return False
-        if current.remove_child(path[-1]):
-            if current.allocation_group and current.children:
-                remaining = list(current.children.keys())
-                if remaining:
-                    share = 100.0 / len(remaining)
-                    for name in remaining:
-                        current.allocation_group.update_allocation(name, share)
+        if parent.remove_child(path[-1]):
+            if parent.allocation_group and parent.children:
+                remaining = list(parent.children.keys())
+                share = 100.0 / len(remaining)
+                for n in remaining:
+                    parent.allocation_group.update_allocation(n, share)
             return True
         return False
 
@@ -60,16 +57,9 @@ class PortfolioState:
         return False
 
     def get_all_nodes(self) -> list[Node]:
-        """遞迴收集所有子節點"""
-
-        def collect_nodes(current: Node) -> list[Node]:
-            result = []
-            for child in current.children.values():
-                result.append(child)
-                result.extend(collect_nodes(child))
-            return result
-
-        return collect_nodes(self.root)
+        def collect(node: Node) -> list[Node]:
+            return list(node.children.values()) + [child for n in node.children.values() for child in collect(n)]
+        return collect(self.root)
 
     def add_simplified_node(self, path: list[str], name: str) -> tuple[bool, str]:
         """
@@ -88,12 +78,23 @@ class PortfolioState:
         return True, ""
 
     def get_total_weight(self, path: list[str]) -> float:
-        """計算節點於整體組合中的權重"""
-        total_weight = 100.0
-        for i, segment in enumerate(path):
-            allocation = self.get_allocation(path[:i], segment)
-            total_weight *= allocation / 100.0
-        return total_weight
+        # 沿路徑逐層計算總體比例（局部比例相乘）
+        if not path:
+            return 100.0
+        total = 100.0
+        current = self.root
+        for name in path:
+            # 若目前層級未設定 allocation，則使用平均比例分配
+            allocation = current.allocation_group.allocations.get(name)
+            if allocation is None or allocation == 0:
+                children_count = len(current.children)
+                allocation = 100.0 / children_count if children_count else 0.0
+            total = total * allocation / 100.0
+            next_node = current.children.get(name)
+            if next_node is None:
+                break
+            current = next_node
+        return total
 
     def update_allocation(self, path: list[str], name: str, value: float) -> None:
         """更新指定節點的配置比例"""

@@ -109,8 +109,9 @@ def _render_asset_item(
     item_key = f"{path_key}_{name}"
 
     locked_text = " (已鎖定)" if state.is_fixed else ""
-    unique_text = " (僅此一項)" if state.is_single_asset else ""
-    input_help = f"局部比例：{state.allocation:.1f}%\n總體比例：{total_weight:.1f}%{locked_text}{unique_text}"
+    input_help = (
+        f"局部比例：{state.allocation:.2f}%\n總體比例：{total_weight:.2f}%{locked_text}"
+    )
 
     # 修改：使用浮點數處理百分比
     new_value = cols[0].number_input(
@@ -164,10 +165,7 @@ def _render_asset_share_item(
     total_weight = portfolio_state.get_total_weight(path + [name])
     cols = st.columns([5, 1])
 
-    unique_text = " (僅此一項)" if state.is_single_asset else ""
-    input_help = (
-        f"局部比例：{state.allocation:.1f}%\n總體比例：{total_weight:.1f}%{unique_text}"
-    )
+    input_help = f"局部比例：{state.allocation:.2f}%\n總體比例：{total_weight:.2f}%"
     new_share = cols[0].number_input(
         label=f"**{name}** (份額)",
         min_value=1,
@@ -181,9 +179,8 @@ def _render_asset_share_item(
         st.session_state[share_key] = int(new_share)
         _update_share_allocation(portfolio_state, path)
         st.rerun()
-    cols[1].write("")
-    cols[1].write("")
-    # 簡化刪除按鈕 key，直接以 '_'.join(path+[name])
+
+    cols[1].write(" ")
     delete_key = f"del_share_{'_'.join(path + [name])}"
     if cols[1].button(
         "🗑️",
