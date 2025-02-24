@@ -1,5 +1,7 @@
-from decimal import ROUND_HALF_UP, Decimal
 from typing import AbstractSet, Mapping
+
+ALLOCATION_TOLERANCE = 0.01
+ALLOCATION_PRECISION = 1
 
 
 class AllocationGroup:
@@ -14,10 +16,11 @@ class AllocationGroup:
         return frozenset(self.fixed_items)
 
     def get_allocation(self, name: str, default: float = 0.0) -> float:
-        """取得指定名稱的百分比值，如果不存在則返回預設值"""
+        """取得指定項目的百分比，若不存在則返回預設值"""
         return self.allocations.get(name, default)
 
     def update_allocation(self, name: str, value: float) -> None:
+        """更新指定項目的配置比例，並自動重新分配其他項目比例"""
         if name in self.fixed_items:
             return
 
@@ -29,94 +32,68 @@ class AllocationGroup:
             self.allocations[name] = 0.0
 
         locked_sum = sum(self.allocations.get(n, 0) for n in self.fixed_items)
-
         available = 100 - locked_sum
 
         value = min(max(0.0, value), available)
-
-        unlocked = [
-            k for k in self.allocations if k not in self.fixed_items and k != name
-        ]
-
         old_value = self.allocations[name]
-        self.allocations[name] = value
+        self.allocations[name] = round(value, ALLOCATION_PRECISION)
 
-        if abs(old_value - value) > 0.01:
-            remaining = available - value
+        if abs(old_value - self.allocations[name]) > ALLOCATION_TOLERANCE:
+            remaining = available - self.allocations[name]
+            unlocked = [
+                k for k in self.allocations if k not in self.fixed_items and k != name
+            ]
             if unlocked:
                 others_total = sum(self.allocations.get(k, 0) for k in unlocked)
-
                 if others_total > 0:
                     ratio = remaining / others_total
                     for k in unlocked:
-                        self.allocations[k] = self.allocations.get(k, 0) * ratio
+                        self.allocations[k] = round(
+                            self.allocations.get(k, 0) * ratio, ALLOCATION_PRECISION
+                        )
                 else:
                     equal_share = remaining / len(unlocked)
                     for k in unlocked:
-                        self.allocations[k] = equal_share
-
+                        self.allocations[k] = round(equal_share, ALLOCATION_PRECISION)
             self._normalize()
 
     def _normalize(self) -> None:
-        total_percentage = Decimal("0")
-        unlocked_items = [k for k in self.allocations if k not in self.fixed_items]
-
-        for name, value in self.allocations.items():
-            total_percentage += Decimal(str(value))
-
-        if abs(total_percentage - Decimal("100")) > Decimal("0.1"):
-            unlocked_sum = sum(
-                Decimal(str(self.allocations[k])) for k in unlocked_items
-            )
-            if unlocked_sum > 0:
-                adjustment_ratio = (
-                    Decimal("100")
-                    - sum(Decimal(str(self.allocations[k])) for k in self.fixed_items)
-                ) / unlocked_sum
-
+        """正規化所有項目的總和為 100%"""
+        total_percentage = sum(self.allocations.values())
+        if abs(total_percentage - 100) > ALLOCATION_TOLERANCE * 10:
+            unlocked_items = [k for k in self.allocations if k not in self.fixed_items]
+            locked_total = sum(self.allocations.get(k, 0) for k in self.fixed_items)
+            if unlocked_items:
                 for name in unlocked_items:
-                    value = Decimal(str(self.allocations[name])) * adjustment_ratio
-                    self.allocations[name] = float(
-                        value.quantize(Decimal("0.1"), ROUND_HALF_UP)
+                    self.allocations[name] = round(
+                        self.allocations[name]
+                        / total_percentage
+                        * (100 - locked_total),
+                        ALLOCATION_PRECISION,
                     )
 
-    def balance_allocations(self) -> None:
-        total_allocation = Decimal("0")
-        adjustable_items = [k for k in self.allocations if k not in self.fixed_items]
-
-        for item_name, item_value in self.allocations.items():
-            total_allocation += Decimal(str(item_value))
-
-        if abs(total_allocation - Decimal("100")) > Decimal("0.1"):
-            total_unlocked_value = sum(
-                Decimal(str(self.allocations[k])) for k in adjustable_items
-            )
-            if total_unlocked_value > 0:
-                distribution_ratio = (
-                    Decimal("100")
-                    - sum(Decimal(str(self.allocations[k])) for k in self.fixed_items)
-                ) / total_unlocked_value
-
     def has_single_unlocked_item(self) -> bool:
-        """檢查是否只有一個未鎖定的項目"""
+        """檢查是否只有一個未鎖定項目"""
         return len(self.allocations) - len(self.fixed_items) == 1
 
     def toggle_fixed(self, name: str, is_fixed: bool) -> None:
+        """
+        設定或取消指定項目的鎖定狀態，
+        並根據狀態調整其他項目的比例。
+        """
         if name not in self.allocations:
             return
 
         if is_fixed:
-            if (
-                sum(self.allocations.get(n, 0) for n in self.fixed_items)
-                + self.allocations[name]
-                > 99.9
-            ):
+            current_locked = sum(self.allocations.get(n, 0) for n in self.fixed_items)
+            if current_locked + self.allocations[name] > 99.9:
                 return
 
             unlocked_items = [k for k in self.allocations if k not in self.fixed_items]
             if len(unlocked_items) == 2 and name in unlocked_items:
-                other_item = next(k for k in unlocked_items if k != name)
-                self.fixed_items.update([name, other_item])
+                self.fixed_items.update(
+                    [name] + [k for k in unlocked_items if k != name]
+                )
                 return
 
             self.fixed_items.add(name)
@@ -138,6 +115,7 @@ class AllocationGroup:
                 self._normalize()
 
     def _redistribute_allocations(self) -> None:
+        """重新分配未鎖定項目的百分比以滿足總和 100%"""
         total_locked_percentage = sum(
             self.allocations.get(name, 0) for name in self.fixed_items
         )
@@ -155,10 +133,12 @@ class AllocationGroup:
             percentage_ratio = available_percentage / total_unlocked_percentage
             for item_name in unlocked_item_names:
                 self.allocations[item_name] = round(
-                    self.allocations[item_name] * percentage_ratio, 1
+                    self.allocations[item_name] * percentage_ratio, ALLOCATION_PRECISION
                 )
         else:
-            equal_percentage = round(available_percentage / len(unlocked_item_names), 1)
+            equal_percentage = round(
+                available_percentage / len(unlocked_item_names), ALLOCATION_PRECISION
+            )
             for item_name in unlocked_item_names:
                 self.allocations[item_name] = equal_percentage
 
