@@ -1,5 +1,5 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
 
 from src.models.enums import NodeType
 from src.models.portfolio import PortfolioState
@@ -37,13 +37,15 @@ def render_rebalancer_ui(portfolio_state: PortfolioState) -> None:
         st.info("💡 系統將根據目標配置比例提供智能調整建議。")
         for node in terminal_nodes:
             key = node.full_path
+            name = node.name
             current_values[key] = st.number_input(
-                f"💰 {key} 的現值",
+                f"💰 {name} 的現值",
                 value=0,
                 step=1000,
                 key=key,
                 help="請輸入該資產的當前市值",
             )
+
         submitted = st.form_submit_button("🎯 產生調整建議", use_container_width=True)
 
     if submitted:
@@ -64,6 +66,9 @@ def render_rebalancer_ui(portfolio_state: PortfolioState) -> None:
         rebalance_data = []
         for node in terminal_nodes:
             path_list = node.full_path.split(" -> ")
+            # 提取標的名稱僅用最後一段，資產種類用第二段（若存在）
+            asset_symbol = path_list[-1]
+            asset_type = path_list[1] if len(path_list) > 1 else ""
             weight = portfolio_state.get_total_weight(path_list)
             current_value = current_values[node.full_path]
             target_value = int(total_value * (weight / 100))
@@ -72,7 +77,8 @@ def render_rebalancer_ui(portfolio_state: PortfolioState) -> None:
 
             rebalance_data.append(
                 {
-                    "資產名稱": node.full_path,
+                    "資產名稱": asset_symbol,
+                    "資產種類": asset_type,
                     "目標比例": f"{weight:.1f}%",
                     "現有市值": current_value,
                     "目標市值": target_value,
