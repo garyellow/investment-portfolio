@@ -27,7 +27,9 @@ class PortfolioState:
         if not path:
             return False
         parent = self.get_node_by_path(path[:-1])
-        if not parent or (parent.allocation_group and path[-1] in parent.allocation_group.fixed_items):
+        if not parent or (
+            parent.allocation_group and path[-1] in parent.allocation_group.fixed_items
+        ):
             return False
         if parent.remove_child(path[-1]):
             if parent.allocation_group and parent.children:
@@ -58,7 +60,10 @@ class PortfolioState:
 
     def get_all_nodes(self) -> list[Node]:
         def collect(node: Node) -> list[Node]:
-            return list(node.children.values()) + [child for n in node.children.values() for child in collect(n)]
+            return list(node.children.values()) + [
+                child for n in node.children.values() for child in collect(n)
+            ]
+
         return collect(self.root)
 
     def add_simplified_node(self, path: list[str], name: str) -> tuple[bool, str]:

@@ -109,20 +109,18 @@ def _render_asset_item(
     item_key = f"{path_key}_{name}"
 
     locked_text = " (已鎖定)" if state.is_fixed else ""
-    input_help = (
-        f"局部比例：{state.allocation:.2f}%\n總體比例：{total_weight:.2f}%{locked_text}"
-    )
+    input_help = f"局部配置比例：{state.allocation:.2f}%\n整體配置比例：{total_weight:.2f}%{locked_text}"
 
-    # 修改：使用浮點數處理百分比
+    # 修改標籤文字，讓數字輸入提示更清楚
     new_value = cols[0].number_input(
-        label=f"**{name}** (%)",
+        label=f"{name} 配置 (%)",
         min_value=0.0,
         max_value=100.0,
         step=0.1,
         format="%.1f",
         value=float(state.allocation),
         disabled=state.input_disabled,
-        help=input_help,
+        help=f"局部：{state.allocation:.2f}% / 整體：{total_weight:.2f}%{locked_text}",
         key=f"input_{item_key}",
     )
 
@@ -165,7 +163,9 @@ def _render_asset_share_item(
     total_weight = portfolio_state.get_total_weight(path + [name])
     cols = st.columns([5, 1])
 
-    input_help = f"局部比例：{state.allocation:.2f}%\n總體比例：{total_weight:.2f}%"
+    input_help = (
+        f"局部配置比例：{state.allocation:.2f}%\n整體配置比例：{total_weight:.2f}%"
+    )
     new_share = cols[0].number_input(
         label=f"**{name}** (份額)",
         min_value=1,
@@ -196,11 +196,13 @@ def _render_asset_share_item(
 def render_portfolio_ui(portfolio_state: PortfolioState) -> None:
     """顯示投資組合管理介面，支援新增、刪除與資產配置"""
     with st.sidebar:
-        st.title("💼 投資組合管理系統")
+        st.markdown(
+            '<h1 style="color:#1E90FF;">💼 投資組合管理</h1>', unsafe_allow_html=True
+        )
         st.divider()
         _render_asset_creator(portfolio_state)
         _render_asset_deleter(portfolio_state)
-        with st.expander("📊 配置設定", expanded=True):
+        with st.expander("📊 配置調整操作", expanded=True):
             _render_asset_allocator(portfolio_state)
 
 
@@ -212,7 +214,7 @@ def _clear_success_message() -> None:
 
 def _render_asset_creator(portfolio_state: PortfolioState) -> None:
     """顯示新增資產/分類區塊"""
-    with st.expander("➕ 新增資產或分類", expanded=True):
+    with st.expander("➕ 新增投資項目/分類", expanded=True):
         # 過濾可新增子節點的項目
         available_nodes = [
             n for n in portfolio_state.get_all_nodes() if n.can_have_children
@@ -220,7 +222,7 @@ def _render_asset_creator(portfolio_state: PortfolioState) -> None:
         location_options = ["投資組合"] + [n.full_path for n in available_nodes]
 
         selected_loc = st.selectbox(
-            "請選擇資產所在分類", location_options, placeholder="請選擇分類"
+            "📁 選擇分類", location_options, placeholder="請選擇目標分類"
         )
         parent_path: list[str] = selected_loc.split(" -> ")
         parent_node = portfolio_state.get_node_by_path(parent_path)
@@ -231,7 +233,7 @@ def _render_asset_creator(portfolio_state: PortfolioState) -> None:
             st.session_state.setdefault("last_selected_name", None)
 
             selected_name = st.selectbox(
-                "請選擇資產", options=available_names, placeholder="請選擇資產"
+                "💎 選擇標的", options=available_names, placeholder="請選擇標的"
             )
 
             if selected_name != st.session_state.last_selected_name:
@@ -241,7 +243,7 @@ def _render_asset_creator(portfolio_state: PortfolioState) -> None:
             reset_key = f"custom_name_{st.session_state.get('reset_counter', 0)}"
             new_node_name = (
                 st.text_input(
-                    "或輸入自訂名稱",
+                    "或直接輸入自訂名稱",
                     key=reset_key,
                     placeholder=(
                         "請輸入資產類型名稱"
@@ -254,7 +256,7 @@ def _render_asset_creator(portfolio_state: PortfolioState) -> None:
             )
 
             if st.button(
-                "確認新增資產",
+                "✅ 確認新增項目",
                 type="primary",
                 use_container_width=True,
                 disabled=not new_node_name,
@@ -263,7 +265,7 @@ def _render_asset_creator(portfolio_state: PortfolioState) -> None:
                     parent_path, new_node_name
                 )
                 if success:
-                    st.session_state.success_message = "新增成功！"
+                    st.session_state.success_message = "項目新增成功！"
                     st.session_state.reset_counter = (
                         st.session_state.get("reset_counter", 0) + 1
                     )
@@ -279,7 +281,7 @@ def _render_asset_creator(portfolio_state: PortfolioState) -> None:
 
 def _render_asset_deleter(portfolio_state: PortfolioState) -> None:
     """顯示刪除資產或分類的操作區塊"""
-    with st.expander("🗑️ 刪除資產或分類", expanded=False):
+    with st.expander("🗑️ 刪除投資項目 / 分類", expanded=False):
         nodes = portfolio_state.get_all_nodes()
         if not nodes:
             st.info("目前沒有可刪除的項目")
@@ -291,7 +293,7 @@ def _render_asset_deleter(portfolio_state: PortfolioState) -> None:
             key="delete_node_select",
             placeholder="請選擇項目",
         )
-        if st.button("確認刪除所選項目", type="primary", use_container_width=True):
+        if st.button("⚠️ 確認刪除", type="primary", use_container_width=True):
             path_list = selected_node_path.split(" -> ")
             if portfolio_state.remove_asset(path_list):
                 st.success("刪除成功！")
@@ -301,7 +303,7 @@ def _render_asset_deleter(portfolio_state: PortfolioState) -> None:
 
 
 def _render_asset_allocator(portfolio_state: PortfolioState) -> None:
-    """顯示資產配置設定區塊，提供百分比及份額兩種輸入模式"""
+    """配置管理介面"""
     available_nodes = [
         n for n in portfolio_state.get_all_nodes() if n.can_have_children
     ]
@@ -316,19 +318,24 @@ def _render_asset_allocator(portfolio_state: PortfolioState) -> None:
         del st.session_state.selected_allocation_path
 
     selected_path = st.selectbox(
-        "請選擇要設定配置的分類或資產",
+        "請選擇分類或項目配置",
         node_paths,
         index=node_paths.index(st.session_state.allocation_view_path),
-        placeholder="請選擇分類或資產",
+        placeholder="請選擇分類或項目",
     )
     st.session_state.allocation_view_path = selected_path
 
     allocation_mode = st.radio(
-        "配置輸入模式", options=["百分比", "份額"], index=0, key="allocation_mode"
+        "⚖️ 配置模式",
+        options=["以百分比配置", "以份額配置"],
+        index=0,
+        key="allocation_mode",
     )
+
     path: list[str] = selected_path.split(" -> ") if selected_path != "投資組合" else []
 
-    if allocation_mode == "百分比":
+    # 修改判斷條件與後續分支
+    if allocation_mode == "以百分比配置":
         _render_percentage_allocation(portfolio_state, path)
     else:
         _render_share_allocation(portfolio_state, path)

@@ -3,7 +3,7 @@ from typing import Optional
 import requests
 
 """
-網路工具模組：提供 fetch_json 函式以設定 timeout 並返回解析後的 JSON 數據。
+網路工具模組：用於獲取和解析外部 API 資料。
 """
 
 

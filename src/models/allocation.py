@@ -3,6 +3,7 @@ from typing import AbstractSet, Mapping
 ALLOCATION_TOLERANCE = 0.01
 ALLOCATION_PRECISION = 1
 
+
 class AllocationGroup:
     def __init__(self) -> None:
         self.allocations: dict[str, float] = {}
@@ -135,7 +136,9 @@ class AllocationGroup:
                     self.allocations[item_name] * percentage_ratio, ALLOCATION_PRECISION
                 )
         else:
-            equal_percentage = round(available_percentage / len(unlocked_item_names), ALLOCATION_PRECISION)
+            equal_percentage = round(
+                available_percentage / len(unlocked_item_names), ALLOCATION_PRECISION
+            )
             for item_name in unlocked_item_names:
                 self.allocations[item_name] = equal_percentage
 

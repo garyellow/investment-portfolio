@@ -99,9 +99,7 @@ class StockSymbolProvider(AssetDataProvider):
                     stock_symbols.append(formatted_symbol)
 
         return (
-            sorted(stock_symbols)
-            if stock_symbols
-            else ["(2330) 台積電", "(2317) 鴻海"]
+            sorted(stock_symbols) if stock_symbols else ["(2330) 台積電", "(2317) 鴻海"]
         )
 
 
@@ -211,7 +209,10 @@ class AssetNameRegistry:
         self, name: str, valid_types: set[NodeType]
     ) -> Optional[NodeType]:
         for node_type in valid_types:
-            if node_type in self._asset_type_map and name in self._asset_type_map[node_type]:
+            if (
+                node_type in self._asset_type_map
+                and name in self._asset_type_map[node_type]
+            ):
                 return node_type
         return None
 

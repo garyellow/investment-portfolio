@@ -95,20 +95,20 @@ def render_diagram(portfolio_state: PortfolioState) -> None:
     根據 portfolio_state 資料顯示 Sankey 圖及配置細節。
     """
     if not portfolio_state.root.has_children:
-        st.info("資料尚空，請透過左側功能新增資產")
+        st.info("🎯 請先新增您的第一個投資項目以啟動規劃。")
         return
 
-    st.header("📈 投資組合配置概覽")
+    st.markdown('<h2 style="color:#1E90FF;">📈 投資組合概覽</h2>', unsafe_allow_html=True)
     _render_asset_summary(portfolio_state)
 
-    st.header("🌐 投資組合分析圖")
+    st.markdown('<h2 style="color:#1E90FF;">🔄 資金流動圖</h2>', unsafe_allow_html=True)
     sankey_chart = create_sankey_chart(portfolio_state.root)
 
-    with st.expander("顯示進階資訊", expanded=False):
+    with st.expander("🔎 詳情", expanded=False):
         st.write("節點數量:", len(sankey_chart.node_labels))
-        st.write("連線數量:", len(sankey_chart.flow_values))
+        st.write("連接數量:", len(sankey_chart.flow_values))
         st.write("節點標籤:", sankey_chart.node_labels)
-        st.write("連線值:", sankey_chart.flow_values)
+        st.write("連線數值:", sankey_chart.flow_values)
 
     st.plotly_chart(create_sankey_figure(sankey_chart), use_container_width=True)
 
@@ -122,7 +122,7 @@ def _render_asset_summary(portfolio_state: PortfolioState) -> None:
                 if node.has_children:
                     _render_asset_type_details(portfolio_state, asset_type)
                 else:
-                    st.info(f"尚未新增任何 {asset_type}，請前往管理新增。")
+                    st.info(f"目前尚無 {asset_type} 相關項目，請至管理介面新增。")
 
 
 def _render_asset_type_details(portfolio_state: PortfolioState, asset_type: str) -> None:
@@ -130,9 +130,9 @@ def _render_asset_type_details(portfolio_state: PortfolioState, asset_type: str)
     for sub_name, sub_node in sorted(node.children.items()):
         sub_allocation = portfolio_state.get_allocation([asset_type], sub_name)
         total_weight = portfolio_state.get_total_weight([asset_type, sub_name])
-        st.write(f"  - {sub_name}：局部比例 {sub_allocation:.2f}% (總體比例 {total_weight:.2f}%)")
+        st.write(f"  - {sub_name}：局部配置比例 {sub_allocation:.2f}% (整體配置比例 {total_weight:.2f}%)")
         if sub_node.has_children:
             for child_name in sorted(sub_node.children):
                 child_allocation = portfolio_state.get_allocation([asset_type, sub_name], child_name)
                 child_weight = portfolio_state.get_total_weight([asset_type, sub_name, child_name])
-                st.write(f"    - {child_name}：局部比例 {child_allocation:.2f}% (總體比例 {child_weight:.2f}%)")
+                st.write(f"    - {child_name}：局部配置 {child_allocation:.2f}% (整體配置 {child_weight:.2f}%)")

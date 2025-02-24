@@ -8,13 +8,34 @@ from src.ui.rebalancer import render_rebalancer_ui
 
 def main() -> None:
     st.set_page_config(
-        page_title="投資組合視覺化工具",
+        page_title="投資組合管理平台",
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
-    st.title("💼 投資組合比例設定與視覺化")
-    st.write("使用左側功能新增/調整資產，右側即時更新視覺化圖表。")
+    st.title("💼 投資組合管理平台")
+
+    # 注入自訂 CSS，根據主題切換顏色
+    theme = st.get_option("theme.base")
+    if theme == "dark":
+        custom_css = """
+        <style>
+            h1, h2, h3 { color: #1E90FF; }
+            /* 側邊欄背景：暗色 */
+            .css-1d391kg { background-color: #333333; }
+        </style>
+        """
+    else:
+        custom_css = """
+        <style>
+            h1, h2, h3 { color: #1E90FF; }
+            /* 側邊欄背景：亮色 */
+            .css-1d391kg { background-color: #f9f9f9; }
+        </style>
+        """
+    st.markdown(custom_css, unsafe_allow_html=True)
+
+    st.write("請從左側進行配置設定 👈")
 
     st.session_state.setdefault("portfolio_state", PortfolioState())
 
